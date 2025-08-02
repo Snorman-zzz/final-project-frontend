@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LoginForm from "@/components/auth/LoginForm";
 import SignupForm from "@/components/auth/SignupForm";
+import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -58,6 +59,7 @@ const Auth = () => {
           onSwitchToLogin={() => setIsLogin(true)}
         />
       )}
+    <Footer />
     </>
   );
 };

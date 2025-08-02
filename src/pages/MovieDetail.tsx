@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import MovieHero from "@/components/movie/MovieHero";
 import MovieDetails from "@/components/movie/MovieDetails";
 import ReviewsSection from "@/components/movie/ReviewsSection";
@@ -122,6 +123,7 @@ const MovieDetail = () => {
           />
         )}
       </div>
+      <Footer />
     </div>
   );
 };

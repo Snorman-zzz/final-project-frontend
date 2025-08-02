@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Hero from "@/components/Hero";
 import MovieCard from "@/components/MovieCard";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
 import { movieApi, Movie } from "@/services/movieApi";
@@ -73,6 +74,7 @@ const Index = () => {
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 };

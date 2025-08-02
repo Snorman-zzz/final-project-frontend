@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { LogOut, Home, Film, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import Footer from "@/components/Footer";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -66,6 +67,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+      <Footer />
     </div>
   );
 };
