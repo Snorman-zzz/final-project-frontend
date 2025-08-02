@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MovieForm } from "@/components/admin/MovieForm";
+import { movieApi } from "@/services/movieApi";
 import { toast } from "sonner";
 
 const AddMovie = () => {
@@ -24,15 +25,16 @@ const AddMovie = () => {
     setIsLoading(true);
     
     try {
-      // Here you would make an API call to save the movie
-      console.log("Saving movie:", data);
+      const result = await movieApi.createMovie(data);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success("Movie added successfully!");
-      navigate("/admin");
+      if (result.success) {
+        toast.success("Movie added successfully!");
+        navigate("/admin");
+      } else {
+        toast.error(result.error || "Failed to save movie. Please try again.");
+      }
     } catch (error) {
+      console.error("Movie creation error:", error);
       toast.error("Failed to save movie. Please try again.");
     } finally {
       setIsLoading(false);

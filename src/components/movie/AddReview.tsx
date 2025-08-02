@@ -5,35 +5,67 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { reviewsAPI } from "@/services/api";
+import { toast } from "sonner";
 
 interface AddReviewProps {
   isVisible: boolean;
+  movieId: string;
+  movieSource?: 'omdb' | 'custom';
   onClose?: () => void;
+  onReviewAdded?: () => void;
 }
 
-const AddReview = ({ isVisible, onClose }: AddReviewProps) => {
+const AddReview = ({ isVisible, movieId, movieSource = 'omdb', onClose, onReviewAdded }: AddReviewProps) => {
   const [reviewText, setReviewText] = useState("");
   const [userRating, setUserRating] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
   const [hoverRating, setHoverRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitReview = () => {
+  const submitReview = async () => {
     if (!reviewText.trim() || userRating === 0 || !reviewTitle.trim()) return;
     
-    console.log("Review submitted:", { 
-      title: reviewTitle,
-      rating: userRating, 
-      content: reviewText 
-    });
+    setIsSubmitting(true);
     
-    // Reset form
-    setReviewText("");
-    setUserRating(0);
-    setReviewTitle("");
-    
-    // Close the review form after submission
-    if (onClose) {
-      onClose();
+    try {
+      const response = await reviewsAPI.create(
+        movieId,
+        movieSource,
+        reviewTitle,
+        reviewText,
+        userRating
+      );
+      
+      if (response.success) {
+        toast.success("Review submitted successfully!");
+        
+        // Reset form
+        setReviewText("");
+        setUserRating(0);
+        setReviewTitle("");
+        
+        // Notify parent component to refresh reviews
+        if (onReviewAdded) {
+          onReviewAdded();
+        }
+        
+        // Close the review form after submission
+        if (onClose) {
+          onClose();
+        }
+      } else {
+        toast.error("Failed to submit review. Please try again.");
+      }
+    } catch (error) {
+      console.error("Review submission error:", error);
+      if (error instanceof Error && error.message.includes('already reviewed')) {
+        toast.error("You have already reviewed this movie.");
+      } else {
+        toast.error("Failed to submit review. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -102,12 +134,12 @@ const AddReview = ({ isVisible, onClose }: AddReviewProps) => {
         
         <Button 
           onClick={submitReview} 
-          disabled={!reviewText.trim() || userRating === 0 || !reviewTitle.trim()}
+          disabled={!reviewText.trim() || userRating === 0 || !reviewTitle.trim() || isSubmitting}
           className="w-full rounded-full"
           size="lg"
         >
           <Send className="mr-2 h-4 w-4" />
-          Submit Review
+          {isSubmitting ? "Submitting..." : "Submit Review"}
         </Button>
       </CardContent>
     </Card>

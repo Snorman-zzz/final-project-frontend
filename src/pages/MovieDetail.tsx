@@ -115,7 +115,12 @@ const MovieDetail = () => {
         <Separator className="my-12" />
         
         {/* Reviews Section */}
-        <ReviewsSection />
+        {movie && (
+          <ReviewsSection 
+            movieId={movie.imdbID} 
+            movieSource={movie.Source || (movie.imdbID.startsWith('custom_') ? 'custom' : 'omdb')}
+          />
+        )}
       </div>
     </div>
   );

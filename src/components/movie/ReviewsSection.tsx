@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, ThumbsUp, ThumbsDown, Flag, Edit3, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,42 +7,72 @@ import ReviewCard from "@/components/ReviewCard";
 import AddReview from "./AddReview";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { reviewsAPI } from "@/services/api";
+import { toast } from "sonner";
 
-// Mock reviews data - replace with real data
-const mockReviews = [
-  {
-    author: "MovieCritic2024",
-    rating: 5,
-    content: "An absolute masterpiece that transcends the superhero genre. The cinematography is breathtaking, and every performance is pitch-perfect. Heath Ledger's Joker is a tour de force that will be remembered for generations. This film raises the bar for what comic book movies can achieve.",
-    date: "2 days ago",
-    title: "A Genre-Defining Masterpiece",
-    helpful: 156,
-    total: 178
-  },
-  {
-    author: "CinemaEnthusiast",
-    rating: 4,
-    content: "Visually stunning with incredible action sequences. The moral complexity adds depth beyond typical superhero fare. While some plot points feel rushed, the overall experience is unforgettable. Nolan's direction creates a gritty, realistic Gotham that feels lived-in.",
-    date: "5 days ago",
-    title: "Dark, Complex, and Visually Striking",
-    helpful: 89,
-    total: 102
-  },
-  {
-    author: "FilmBuff1985",
-    rating: 5,
-    content: "This movie redefined what superhero films could be. The psychological depth, practical effects, and Hans Zimmer's score create an immersive experience. Every scene serves the story, and the themes of chaos vs order resonate long after the credits roll.",
-    date: "1 week ago",
-    title: "Redefining the Superhero Genre",
-    helpful: 234,
-    total: 267
-  }
-];
+interface ReviewsSectionProps {
+  movieId: string;
+  movieSource?: 'omdb' | 'custom';
+}
 
-const ReviewsSection = () => {
+interface ReviewData {
+  id: string;
+  author: string;
+  rating: number;
+  content: string;
+  date: string;
+  title: string;
+  helpful: number;
+  total: number;
+}
+
+interface ReviewStats {
+  totalReviews: number;
+  averageRating: string;
+  recommendationPercentage: number;
+}
+
+const ReviewsSection = ({ movieId, movieSource = 'omdb' }: ReviewsSectionProps) => {
   const [showAddReview, setShowAddReview] = useState(false);
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [stats, setStats] = useState<ReviewStats>({ totalReviews: 0, averageRating: '0.0', recommendationPercentage: 0 });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  const loadReviews = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await reviewsAPI.getByMovie(movieId, movieSource);
+      
+      if (response.reviews) {
+        setReviews(response.reviews);
+      }
+      
+      if (response.stats) {
+        setStats(response.stats);
+      }
+    } catch (error) {
+      console.error('Failed to load reviews:', error);
+      setError('Failed to load reviews');
+      setReviews([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (movieId) {
+      loadReviews();
+    }
+  }, [movieId, movieSource]);
+
+  const handleReviewAdded = () => {
+    // Refresh reviews after a new review is added
+    loadReviews();
+  };
 
   const handleWriteReview = () => {
     if (!isAuthenticated) {
@@ -58,7 +88,7 @@ const ReviewsSection = () => {
         <div className="flex items-center space-x-3">
           <MessageSquare className="h-6 w-6 text-primary" />
           <h2 className="text-3xl font-bold">User Reviews</h2>
-          <span className="text-muted-foreground">({mockReviews.length} reviews)</span>
+          <span className="text-muted-foreground">({stats.totalReviews} reviews)</span>
         </div>
         
         <div className="flex items-center space-x-2">
@@ -74,15 +104,15 @@ const ReviewsSection = () => {
         <CardContent className="p-6">
           <div className="grid md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">8.7</div>
+              <div className="text-3xl font-bold text-primary mb-1">{stats.averageRating}</div>
               <div className="text-sm text-muted-foreground">Average Rating</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">2.1K</div>
+              <div className="text-3xl font-bold text-primary mb-1">{stats.totalReviews}</div>
               <div className="text-sm text-muted-foreground">Total Reviews</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">92%</div>
+              <div className="text-3xl font-bold text-primary mb-1">{stats.recommendationPercentage}%</div>
               <div className="text-sm text-muted-foreground">Recommended</div>
             </div>
           </div>
@@ -115,8 +145,11 @@ const ReviewsSection = () => {
               </Button>
             </div>
             <AddReview 
-              isVisible={showAddReview} 
-              onClose={() => setShowAddReview(false)} 
+              isVisible={showAddReview}
+              movieId={movieId}
+              movieSource={movieSource}
+              onClose={() => setShowAddReview(false)}
+              onReviewAdded={handleReviewAdded}
             />
           </div>
         )}
@@ -128,7 +161,49 @@ const ReviewsSection = () => {
       <div className="space-y-6">
         <h3 className="text-xl font-semibold">Recent Reviews</h3>
         
-        {mockReviews.map((review, index) => (
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="bg-card/50 border-border">
+                <CardContent className="p-6">
+                  <div className="animate-pulse">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-muted rounded-full"></div>
+                        <div>
+                          <div className="h-4 bg-muted rounded w-24 mb-2"></div>
+                          <div className="h-3 bg-muted rounded w-16"></div>
+                        </div>
+                      </div>
+                      <div className="h-4 bg-muted rounded w-20"></div>
+                    </div>
+                    <div className="h-6 bg-muted rounded w-3/4 mb-3"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded w-full"></div>
+                      <div className="h-4 bg-muted rounded w-2/3"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <Card className="bg-card/50 border-border">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">{error}</p>
+              <Button variant="outline" onClick={loadReviews} className="mt-4">
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        ) : reviews.length === 0 ? (
+          <Card className="bg-card/50 border-border">
+            <CardContent className="p-6 text-center">
+              <p className="text-muted-foreground">No reviews yet. Be the first to write one!</p>
+            </CardContent>
+          </Card>
+        ) : (
+          reviews.map((review, index) => (
           <Card key={index} className="bg-card/50 border-border hover:bg-card/70 transition-colors">
             <CardContent className="p-6">
               {/* Review Header */}
@@ -186,7 +261,8 @@ const ReviewsSection = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
       
       {/* Load More */}
